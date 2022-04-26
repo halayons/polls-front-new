@@ -50,16 +50,16 @@
           <q-item-section> Encuesta {{ this.numeroe }} </q-item-section>
         </q-toolbar>
         <div class="div-1">
-          <li v-for="(question, index) in questions" :key="index">
+          <li v-for="question in questions" :key="question.id">
             <h6>{{ question.question_text }}</h6>
 
             <label class="form-control">
               <input
                 type="radio"
                 class="free-label four col"
-                :id="index"
+                :id="question.id"
                 :value="question.option_one"
-                v-model="responses1[index]"
+                v-model="responses1[question.id]"
               />
               {{ question.option_one }}</label
             >
@@ -68,21 +68,21 @@
               <input
                 type="radio"
                 class="free-label four col"
-                :id="index + 1"
+                :id="question.id"
                 :value="question.option_two"
-                v-model="responses1[index]"
+                v-model="responses1[question.id]"
               />
               {{ question.option_two }}</label
             >
             <br />
           </li>
-          <li v-for="(question, index) in questionso" :key="index">
+          <li v-for="question in questionso" :key="question.id">
             <h6>{{ question.question_text }}</h6>
 
-            <input type="text" v-model="responses2[index]" />
+            <input type="text" v-model="responses1[question.id]" />
             <br />
           </li>
-          <li v-for="(question, index) in questionsm" :key="index">
+          <li v-for="question in questionsm" :key="question.id">
             <h6>{{ question.question_text }}</h6>
             <label class="form-control">
               <input
@@ -152,12 +152,12 @@ export default {
     return {
       numeroe: 0,
       responses1: ["", ""],
-      responses2: ["", ""],
       checkedNames: [],
       polls: [],
       questions: [],
       questionsm: [],
       questionso: [],
+      questionss: [],
     };
   },
   methods: {
@@ -173,13 +173,13 @@ export default {
         });
     },
     getQuestions(numero) {
-      console.log("resultado", numero);
       this.numeroe = numero;
       const path = "http://127.0.0.1:8000/api/polls/questions/";
       axios
         .get(path)
         .then((response) => {
           const questionst = response.data;
+
           this.questions = questionst.filter(
             (question) =>
               (question.poll == numero) & (question.type == "unique")
@@ -197,70 +197,62 @@ export default {
         });
     },
     checkForm() {
-      this.errors = [];
-      if (
-        this.numeroe == 1 &&
-        this.responses1[0] != "" &&
-        this.responses1[1] != "" &&
-        this.responses2[0] != "" &&
-        this.responses2[1] != "" &&
-        this.checkedNames[0] != undefined
-      ) {
-        this.postChoices();
-      } else if (
-        this.numeroe == 2 &&
-        this.responses1[0] != "" &&
-        this.responses2[0] != "" &&
-        this.responses2[1] != "" &&
-        this.checkedNames[0] != undefined
-      ) {
-        this.postChoices();
-      } else if (
-        this.numeroe == 3 &&
-        this.responses1[0] != "" &&
-        this.responses2[0] != "" &&
-        this.checkedNames[0] != undefined
-      ) {
-        this.postChoices();
-      } else {
-        const Swal = require("sweetalert2");
-        Swal.fire({ icon: "error", text: "Todos los campos son requeridos" });
-        console.log(this.responses1[0]);
-        console.log(this.responses2[0]);
-        console.log(this.responses2[1]);
-        console.log(this.checkedNames[0]);
-      }
+      Array.from(this.questions).forEach((element) => {
+        if (
+          this.responses1[element.id] != "" &&
+          this.checkedNames[0] != undefined
+        ) {
+          this.postChoices(this.responses1[element.id], element.id);
+        } else {
+          const Swal = require("sweetalert2");
+          Swal.fire({ icon: "error", text: "Todos los campos son requeridos" });
+        }
+      });
+      Array.from(this.questionso).forEach((element) => {
+        if (
+          this.responses1[element.id] != "" &&
+          this.checkedNames[0] != undefined
+        ) {
+          this.postChoices(this.responses1[element.id], element.id);
+        } else {
+          const Swal = require("sweetalert2");
+          Swal.fire({ icon: "error", text: "Todos los campos son requeridos" });
+        }
+      });
+      Array.from(this.questionsm).forEach((element) => {
+        if (this.checkedNames[0] != undefined) {
+          this.postChoices(
+            this.checkedNames[0] + this.checkedNames[1] + this.checkedNames[2],
+            element.id
+          );
+          const Swal = require("sweetalert2");
+
+          Swal.fire({
+            position: "top-end",
+            icon: "success",
+            title: "Gracias por responder la encuesta",
+            showConfirmButton: true,
+          }).then(function () {
+            location.reload();
+          });
+        } else {
+          const Swal = require("sweetalert2");
+          Swal.fire({ icon: "error", text: "Todos los campos son requeridos" });
+        }
+      });
     },
-    postChoices() {
+    postChoices(q1, q2) {
       let post = {
         poll: this.numeroe,
-        choice_q1: this.responses1[0],
-        choice_q2: this.responses1[1],
-        choice_q3: this.responses2[0],
-        choice_q4: this.responses2[1],
-        choice_q5:
-          this.checkedNames[0] +
-          "," +
-          this.checkedNames[1] +
-          "," +
-          this.checkedNames[2],
+        answer: q1,
+        question: q2,
+        poll_n: "",
       };
       axios
         .post("http://127.0.0.1:8000/api/polls/choice/", post)
         .then((result) => {
           console.log(result);
           const Swal = require("sweetalert2");
-          if (result.status == 201) {
-            Swal.fire({
-              position: "top-end",
-              icon: "success",
-              title: "Gracias por responder la encuesta",
-              showConfirmButton: true,
-            });
-            location.reload();
-          } else {
-            Swal.fire("Error!", result.statusText, "error");
-          }
         });
     },
   },
